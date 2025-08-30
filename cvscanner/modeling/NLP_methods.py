@@ -94,7 +94,7 @@ def find_top_categories(text_cv, json_file_path, top_n=5):
     # Return top N categories
     result = []
     for category, score in sorted_categories:
-        percentage = round(score * 100, 2)  # Convert to percentage and round to 2 decimals
+        percentage = round(score, 2)  # Convert to percentage and round to 2 decimals
         result.append((category, percentage))
     
     return result,similarities,vectorizer

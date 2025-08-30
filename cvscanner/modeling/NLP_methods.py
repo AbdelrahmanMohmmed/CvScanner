@@ -9,8 +9,10 @@ import plotly.graph_objects as go
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import plotly.offline as pyo
-import plotly.graph_objs as go
-pyo.init_notebook_mode(connected=True)
+#import plotly.graph_objs as go
+#pyo.init_notebook_mode(connected=True)
+import plotly.express as px
+import streamlit as st
     
 
 def load_category_data(json_file_path):
@@ -199,7 +201,9 @@ def print_formatted_results(results):
     for i, (category, score) in enumerate(results, 1):
         percentage = round(float(score) * 100, 2)
         percentage_results.append((category, percentage))
-        print(f"{i}. {category}: {percentage}%")
+        #print(f"{i}. {category}: {percentage}%")
+        st.write(f"{i}. {category}: {percentage}%")
+
     
     return percentage_results
 
@@ -233,7 +237,9 @@ def visualize_cv_in_trained_space(similarities, documents, categories, input_cv_
     all_vectors = np.vstack([training_vectors.toarray(), input_cv_vector.toarray()])
     
     # Apply dimensionality reduction
-    print("Reducing dimensions with t-SNE...")
+    #print("Reducing dimensions with t-SNE...")
+    st.info("Reducing dimensions with t-SNE...")
+
     
     # First reduce with PCA for better t-SNE performance
     pca = PCA(n_components=min(50, all_vectors.shape[1]))
@@ -298,10 +304,12 @@ def visualize_cv_in_trained_space(similarities, documents, categories, input_cv_
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
     
-    print("Visualization ready! Showing plot...")
+    #print("Visualization ready! Showing plot...")
     
     # Use offline iplot for Jupyter notebook display
-    pyo.iplot(fig)
+    #pyo.iplot(fig)
+    st.success("Visualization ready!")
+    st.plotly_chart(fig, use_container_width=True)
     
     return fig, reduced_2d
 
@@ -331,7 +339,9 @@ def find_missing_keywords(input_cv_text, target_category, category_data, vectori
     # Get all resumes for the target category
     target_resumes = category_data.get(target_category, [])
     if not target_resumes:
-        print(f"No resumes found for category: {target_category}")
+        #print(f"No resumes found for category: {target_category}")
+        st.warning(f"No resumes found for category: {target_category}")
+
         return []
     
     # Create a representative document for the target category
@@ -390,7 +400,9 @@ def analyze_cv_gaps(input_cv_text, target_category, category_data, vectorizer=No
     """
     Comprehensive analysis of what's missing in the CV for a target category
     """
-    print(f"=== CV Gap Analysis for '{target_category}' ===\n")
+    #print(f"=== CV Gap Analysis for '{target_category}' ===\n")
+    st.subheader(f"CV Gap Analysis for '{target_category}'")
+
     
     # Get missing keywords
     missing_keywords = find_missing_keywords(input_cv_text, target_category, category_data, vectorizer)
@@ -412,22 +424,31 @@ def analyze_cv_gaps(input_cv_text, target_category, category_data, vectorizer=No
     cv_keywords = [(feature_names[i], score) for i, score in enumerate(input_scores) if score > 0]
     cv_keywords.sort(key=lambda x: x[1], reverse=True)
     
-    print("📊 Top keywords in your CV:")
+    #print("📊 Top keywords in your CV:")
+    st.markdown("### 📊 Top keywords in your CV:")
+
     for keyword, score in cv_keywords[:10]:
-        print(f"   {keyword}: {score:.4f}")
+        #print(f"   {keyword}: {score:.4f}")
+        st.write(f"- {keyword}: {score:.4f}")
+
     
-    print(f"\n🎯 Top keywords expected for '{target_category}':")
+    #print(f"\n🎯 Top keywords expected for '{target_category}':")
+    st.markdown(f"### 🎯 Top keywords expected for '{target_category}':")
     for keyword, score in category_profile:
         print(f"   {keyword}: {score:.4f}")
     
-    print(f"\n🔍 Missing/weak keywords for '{target_category}':")
+    #print(f"\n🔍 Missing/weak keywords for '{target_category}':")
+    st.markdown(f"### 🔍 Missing/weak keywords for '{target_category}':")
     if not missing_keywords:
-        print("   No significant missing keywords found! Your CV already matches well.")
+        #print("   No significant missing keywords found! Your CV already matches well.")
+        st.success(" No significant missing keywords found! Your CV already matches well.")
         return
     
     for i, (keyword, importance, target_score, input_score) in enumerate(missing_keywords, 1):
-        print(f"   {i}. {keyword}")
-        print(f"      Importance: {importance:.4f} (Target: {target_score:.4f}, Your CV: {input_score:.4f})")
+        #print(f"   {i}. {keyword}")
+        #print(f"      Importance: {importance:.4f} (Target: {target_score:.4f}, Your CV: {input_score:.4f})")
+        st.write(f"{i}. **{keyword}**")
+        st.caption(f"Importance: {importance:.4f} (Target: {target_score:.4f}, Your CV: {input_score:.4f})")
     
     return missing_keywords
 
@@ -478,4 +499,3 @@ def suggest_improvements(input_cv_text, target_category, category_data, vectoriz
     suggestions.append("- Tailor your experience descriptions to highlight relevant skills")
     
     return suggestions
-

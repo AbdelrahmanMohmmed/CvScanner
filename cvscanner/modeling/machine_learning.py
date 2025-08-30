@@ -18,11 +18,15 @@ from sklearn.svm import LinearSVC
 from sklearn.cluster import KMeans
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import normalize
+from sklearn.metrics import silhouette_score
+import streamlit as st#--
 
 try:
     df
 except NameError:
-    df = pd.read_csv("/content/cleanedV2.csv")
+    #df = pd.read_csv("/content/cleanedV2.csv")
+    df = pd.read_csv("data/processed/cleanedV2.csv")
+
 
 # Ensure Skills is a list
 def parse_skills(x):
@@ -74,13 +78,14 @@ metrics_df = pd.DataFrame({
     "Metric": ["Accuracy", "F1 (macro)"],
     "Score": [acc, f1_macro]
 })
-display(metrics_df)
-print(report)
+st.dataframe(metrics_df)#--
+st.text(report)#--
 
 
 student_skills = "python sql machine learning pandas scikit-learn"
 predicted_category = clf.predict([student_skills])[0]
-print("Predicted Career Path:", predicted_category)
+#print("Predicted Career Path:", predicted_category)
+st.write("**Predicted Career Path:**", predicted_category)
 
 vec = TfidfVectorizer(ngram_range=(1,2), min_df=2, max_df=0.9, sublinear_tf=True)
 X_all = vec.fit_transform(df["text"].values)
@@ -90,10 +95,11 @@ sil_scores = []
 for k in k_candidates:
     km = KMeans(n_clusters=k, random_state=42, n_init=10)
     labs = km.fit_predict(X_all)
-    if len(set(labs)) > 1:
+    #==
+    if len(set(labs)) > 1:  # only calculate if at least 2 clusters
         sil = float(silhouette_score(X_all, labs, metric='cosine'))
-    else:
-        sil = -1.0
+else:
+    sil = 0.0  # fallback if only one cluster
     sil_scores.append(sil)
 
 best_k = int(k_candidates[int(np.argmax(sil_scores))])
@@ -111,9 +117,11 @@ def top_terms_per_cluster(vec, km, n_terms=13):
     terms = vec.get_feature_names_out()
     order_centroids = km.cluster_centers_.argsort()[:, ::-1]
     for i in range(km.n_clusters):
-        print(f"\nCluster {i}:")
+       # print(f"\nCluster {i}:")
+        st.write(f"### Cluster {i}")
         for ind in order_centroids[i, :n_terms]:
-            print("  ", terms[ind])
+            #print("  ", terms[ind])
+             st.write(" -", terms[ind])
 
 top_terms_per_cluster(vec, kmeans, n_terms=13)
 
@@ -147,9 +155,12 @@ top_categories = (
 top_categories.columns = ["Recommended Category", "Votes"]
 
 
-print("Example skills:", example_skills)
-print("\nTop recommended categories based on similarity:")
-print(top_categories)
+#print("Example skills:", example_skills)
+st.write("**Example skills:**", example_skills)
+#print("\nTop recommended categories based on similarity:")
+st.write("### Top recommended categories based on similarity")
+#print(top_categories)
+st.dataframe(top_categories)
 
 
 summary = {
@@ -157,3 +168,5 @@ summary = {
     "example_input": example_skills,
     "recommendations": top_categories.to_dict(orient="records"),
 }
+
+st.json(summary)

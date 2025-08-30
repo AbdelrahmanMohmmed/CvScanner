@@ -15,4 +15,13 @@ typer
 streamlit
 pdfplumber
 python-docx
+seaborn
+torch
+torchvision
+torchaudio
+transformers
+plotly
+PyPDF2
+gdown
+WordCloud
 -e.

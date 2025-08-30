@@ -13,12 +13,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Import your models and methods from the repo
-from cvscanner.modeling import deeplearning
+from cvscanner.modeling import DeepLearningModel
 from cvscanner.modeling import NLP_methods as nlp
-from cvscanner.modeling import ML_model as ml
+from cvscanner.modeling import machine_learning as ml
 
 # -------------------
-# PATHS (adjust to your repo structure)
 JSON_FILE = "models/grouping.json"       # for NLP
 DL_MODEL_PATH = "models/best_cv_classifier.pth"  # deep learning model
 CLEANED_DATA = "data/cleanedV2.csv"      # for ML/EDA
@@ -32,9 +31,6 @@ tab1, tab2, tab3, tab4 = st.tabs(
     ["Upload & Analyze CV", "NLP Insights", "ML Predictions", "EDA Dashboard"]
 )
 
-# ---------------------------
-# TAB 1: Upload & Analyze CV
-# ---------------------------
 with tab1:
     st.subheader("Upload your CV or paste text")
     uploaded_file = st.file_uploader("Upload CV (txt/pdf/docx)", type=["txt"])
@@ -81,9 +77,6 @@ with tab1:
             for cat, conf in top_preds:
                 st.write(f"- {cat}: {conf*100:.2f}%")
 
-# ---------------------------
-# TAB 2: NLP Insights
-# ---------------------------
 with tab2:
     st.subheader("Explore NLP Models")
     example_text = st.text_area("Enter example CV text for NLP analysis:")
@@ -93,9 +86,6 @@ with tab2:
             nlp.print_formatted_results(results)
             st.write(results)
 
-# ---------------------------
-# TAB 3: ML Predictions
-# ---------------------------
 with tab3:
     st.subheader("ML-based Career Path Prediction")
     student_skills = st.text_input("Enter skills (comma separated):", "python, sql, machine learning")
@@ -104,9 +94,6 @@ with tab3:
         pred = clf.predict([student_skills])[0]
         st.success(f"Predicted Career Path: {pred}")
 
-# ---------------------------
-# TAB 4: EDA Dashboard
-# ---------------------------
 with tab4:
     st.subheader("EDA & Insights from Data")
     df = pd.read_csv(CLEANED_DATA)

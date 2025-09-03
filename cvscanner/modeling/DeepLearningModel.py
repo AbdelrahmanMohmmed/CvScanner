@@ -175,7 +175,7 @@ def train_deep_learning_model(json_file_path,saved_model_name ,model_name='bert-
                 'label_encoder': label_encoder,
                 'tokenizer_name': model_name,
                 'num_classes': num_classes
-            }, 'best_cv_classifier.pth')
+            }, saved_model_name)
             st.success(f"Saved new best model with accuracy: {accuracy:.2f}%")
 
     st.success(f"Training complete! Best accuracy: {best_accuracy:.2f}%")

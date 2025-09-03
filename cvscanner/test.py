@@ -1,34 +1,6 @@
-from pathlib import Path
-
-from loguru import logger
-from tqdm import tqdm
-import typer
-
 import json
 import requests
 import os
-
-from cvscanner.config import PROCESSED_DATA_DIR
-
-app = typer.Typer()
-
-
-@app.command()
-def main(
-    # ---- REPLACE DEFAULT PATHS AS APPROPRIATE ----
-    input_path: Path = PROCESSED_DATA_DIR / "dataset.csv",
-    output_path: Path = PROCESSED_DATA_DIR / "features.csv",
-    # -----------------------------------------
-):
-    # ---- REPLACE THIS WITH YOUR OWN CODE ----
-    logger.info("Generating features from dataset...")
-    for i in tqdm(range(10), total=10):
-        if i == 5:
-            logger.info("Something happened for iteration 5.")
-    logger.success("Features generation complete.")
-    # -----------------------------------------
-
-
 
 API_KEY = "AIzaSyD90K_alA1ApxjWVLQFE_oNxbBMenBaRo8"
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent"
@@ -99,4 +71,11 @@ def generate_better_cv(job_title, cv_content, missing_skills):
         return "Failed to generate a better CV. Please check your API key and network connection."
 
 if __name__ == "__main__":
-    app()
+    job_title = "Data Analyst"
+    existing_cv_content = "5+ years of experience in data analysis, working with large datasets to extract insights and build reports. Skilled in using Python for data cleaning and manipulation."
+    missing_skills_list = ["Statistical Analysis", "Machine Learning", "ETL"]
+
+    better_cv_text = generate_better_cv(job_title, existing_cv_content, missing_skills_list)
+
+    print("\n--- Generated 'Better' CV Version ---")
+    print(better_cv_text)

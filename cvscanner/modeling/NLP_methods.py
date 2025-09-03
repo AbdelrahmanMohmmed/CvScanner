@@ -9,11 +9,13 @@ import plotly.graph_objects as go
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import plotly.offline as pyo
+import joblib  # for saving/loading models
 #import plotly.graph_objs as go
 #pyo.init_notebook_mode(connected=True)
 import plotly.express as px
 import streamlit as st
-    
+from tqdm import tqdm
+from scipy.sparse import csr_matrix
 
 def load_category_data(json_file_path):
     """Load the categorized resumes from JSON file"""
@@ -207,6 +209,145 @@ def print_formatted_results(results):
     
     return percentage_results
 
+def train_and_save_model(json_file_path, model_path="../models/tfidf_model.joblib", matrix_path="../models/tfidf_matrix.npz", category_path="../models/categories.json"):
+    """Train TF-IDF model once and save it to disk."""
+    category_data = load_category_data(json_file_path)
+
+    # Create representative text per category
+    category_representatives = {}
+    print("\n[1/4] Preprocessing resumes by category...")
+    for category, resumes in tqdm(category_data.items(), desc="Preprocessing", unit="category"):
+        preprocessed_resumes = [preprocess_text(resume) for resume in resumes]
+        category_representatives[category] = " ".join(preprocessed_resumes)
+
+    documents = list(category_representatives.values())
+    category_names = list(category_representatives.keys())
+    
+    print("\n[2/4] Fitting TF-IDF vectorizer...")
+    vectorizer = TfidfVectorizer(
+        max_features=6000,
+        stop_words='english',
+        ngram_range=(1, 3),
+        min_df=2,
+        max_df=0.85
+    )
+
+    X = vectorizer.fit_transform(tqdm(documents, desc="Vectorizing", unit="doc"))
+    # Save vectorizer and matrix
+    print("\n[3/4] Saving TF-IDF model...")
+    joblib.dump(vectorizer, model_path)
+    
+    print("[4/4] Saving TF-IDF matrix and categories...")
+    np.savez_compressed(matrix_path, data=X.data, indices=X.indices, indptr=X.indptr, shape=X.shape)
+
+    # Save category names
+    with open(category_path, "w", encoding="utf-8") as f:
+        json.dump(category_names, f)
+
+    print(f"Model saved to {model_path}, matrix saved to {matrix_path}, categories saved to {category_path}")
+
+def load_model_and_predict(text_cv, model_path="../models/tfidf_model.joblib", matrix_path="../models/tfidf_matrix.npz", category_path="../models/categories.json", top_n=5):
+    """Load saved model and predict top categories for new CV text."""
+    # Load vectorizer
+    vectorizer = joblib.load(model_path)
+
+    # Load sparse matrix
+    loader = np.load(matrix_path)
+    from scipy.sparse import csr_matrix
+    X = csr_matrix((loader['data'], loader['indices'], loader['indptr']), shape=loader['shape'])
+
+    # Load category names
+    with open(category_path, "r", encoding="utf-8") as f:
+        category_names = json.load(f)
+
+    # Preprocess and transform new CV
+    preprocessed_cv = preprocess_text(text_cv)
+    cv_vector = vectorizer.transform([preprocessed_cv])
+
+    similarities = cosine_similarity(cv_vector, X).flatten()
+
+    # Get top N categories
+    top_indices = similarities.argsort()[::-1][:top_n]
+    top_results = [(category_names[i], round(similarities[i], 3)) for i in top_indices]
+
+    return top_results, similarities, vectorizer
+
+
+
+def load_trained_model(model_path, matrix_path, category_path):
+    """Load saved vectorizer, TF-IDF matrix, and categories."""
+    vectorizer = joblib.load(model_path)
+
+    # Load sparse matrix
+    loader = np.load(matrix_path)
+    X = csr_matrix((loader["data"], loader["indices"], loader["indptr"]), shape=loader["shape"])
+
+    # Load category names
+    with open(category_path, "r", encoding="utf-8") as f:
+        category_names = json.load(f)
+
+    return vectorizer, X, category_names
+
+
+def find_missing_keywords_from_model(
+    input_cv_text,
+    target_category,
+    model_path="../models/tfidf_model.joblib",
+    matrix_path="../models/tfidf_matrix.npz",
+    category_path="../models/categories.json",
+    top_n=10,
+    target_threshold=0.01,
+    coverage_ratio=0.3
+):
+    """
+    Find missing keywords in CV compared to a target category using pre-trained TF-IDF model.
+
+    Args:
+        input_cv_text (str): The input CV text.
+        target_category (str): Category to compare against.
+        model_path (str): Path to saved vectorizer.
+        matrix_path (str): Path to saved TF-IDF matrix.
+        category_path (str): Path to saved category names.
+        top_n (int): Number of top missing keywords to return.
+        target_threshold (float): Minimum importance of keyword in target category.
+        coverage_ratio (float): Max ratio of input_score/target_score to consider "missing".
+
+    Returns:
+        list of tuples: (keyword, importance, target_score, input_score)
+    """
+
+    # Load vectorizer + matrix + categories
+    vectorizer = joblib.load(model_path)
+
+    loader = np.load(matrix_path)
+    X = csr_matrix((loader['data'], loader['indices'], loader['indptr']), shape=loader['shape'])
+
+    with open(category_path, "r", encoding="utf-8") as f:
+        category_names = json.load(f)
+
+    if target_category not in category_names:
+        raise ValueError(f"Category '{target_category}' not found in saved model categories.")
+
+    target_idx = category_names.index(target_category)
+    target_vector = X[target_idx]
+
+    # Transform input CV
+    preprocessed_cv = preprocess_text(input_cv_text)
+    input_vector = vectorizer.transform([preprocessed_cv])
+
+    # Extract feature scores
+    feature_names = vectorizer.get_feature_names_out()
+    input_scores = input_vector.toarray()[0]
+    target_scores = target_vector.toarray()[0]
+
+    missing_keywords = []
+    for i, (input_score, target_score) in enumerate(zip(input_scores, target_scores)):
+        if target_score > target_threshold and input_score < target_score * coverage_ratio:
+            importance = target_score - input_score
+            missing_keywords.append((feature_names[i], importance, target_score, input_score))
+
+    missing_keywords.sort(key=lambda x: x[1], reverse=True)
+    return missing_keywords[:top_n]
 
 
 def visualize_cv_in_trained_space(similarities, documents, categories, input_cv_text, vectorizer=None):

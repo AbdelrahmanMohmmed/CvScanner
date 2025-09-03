@@ -1,6 +1,7 @@
 import pandas as pd
 import json
 
+
 df = pd.read_csv('/home/jax/CvScanner/data/processed/cleanedV2.csv')
 json_file = '/home/jax/CvScanner/models/grouping.json'
 

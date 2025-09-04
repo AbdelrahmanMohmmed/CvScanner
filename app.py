@@ -7,7 +7,7 @@ import os
 import gdown
 import PyPDF2
 
-# Import your models and methods from the repo
+
 from cvscanner.modeling import DeepLearningModel
 from cvscanner.modeling import NLP_methods as nlp
 from cvscanner.modeling import machine_learning as ml
@@ -21,7 +21,7 @@ CLEANED_DATA = "data/processed/cleanedV2.csv"  # for ML/EDA
 # Ensure models folder exists
 os.makedirs("models", exist_ok=True)
 
-# Download the model from Google Drive if missing
+# Download the model from Google Drive 
 if not os.path.exists(DL_MODEL_PATH):
     file_id = "1lf3ggGMJHN-z75Nlkk_15QnvoxgexOJ4" 
     url = f"https://drive.google.com/uc?id={file_id}"

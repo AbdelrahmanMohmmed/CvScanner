@@ -88,7 +88,7 @@ def prepare_data_from_json(json_file_path):
     return texts, labels
 
 # ---------------- TRAINING ----------------
-def train_deep_learning_model(json_file_path,saved_model_name ,model_name='bert-base-uncased', 
+def train_deep_learning_model(json_file_path ,model_name='bert-base-uncased', 
                               num_epochs=10, batch_size=16, learning_rate=2e-5):
     texts, labels = prepare_data_from_json(json_file_path)
 
@@ -175,7 +175,7 @@ def train_deep_learning_model(json_file_path,saved_model_name ,model_name='bert-
                 'label_encoder': label_encoder,
                 'tokenizer_name': model_name,
                 'num_classes': num_classes
-            }, saved_model_name)
+            }, 'best_cv_classifier.pth')
             st.success(f"Saved new best model with accuracy: {accuracy:.2f}%")
 
     st.success(f"Training complete! Best accuracy: {best_accuracy:.2f}%")
